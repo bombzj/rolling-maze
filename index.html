@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Hello World</title>
+    </head>
+    <script src="pixi.min.js"></script>
+    <script src="matter.min.js"></script>
+    <script src="maze.js"></script>
+    <body>
+        <p id="ccc">aaa</p>
+        <button onclick="DeviceOrientationEvent.requestPermission()">ok</button>
+        <script type="text/javascript">
+           
+            var beta = 0, gamma = 0
+
+    //Create a Pixi Application
+    let app = new PIXI.Application({width: 1, height: 1});
+    //Add the canvas that Pixi automatically created for you to the HTML document
+    document.body.appendChild(app.view);
+
+    app.renderer.backgroundColor = 0xffffff;
+
+    var demo = Example.wreckingBall()
+    demo.engine.gravity.y = 0
+    window.addEventListener('deviceorientation', function(e) {
+        if(e.beta != null) {
+            ccc.innerHTML = Math.round(Math.sin(e.beta / 180 * Math.PI)*100)/100
+        }
+        if(demo.engine) {
+            if(e.beta != null) {
+                demo.engine.gravity.x = Math.sin(e.beta / 180 * Math.PI) * 5
+            }
+            if(e.gamma != null)
+                demo.engine.gravity.y = -Math.sin(e.gamma / 180 * Math.PI)   * 5
+        }
+    })
+
+    var boSize = 500, baSize = 20
+    var boundary = new PIXI.Graphics()
+    boundary.beginFill(0xffffff, 0)
+    boundary.lineStyle(3, 0x0, 1)
+    boundary.drawRect(0, 0, boSize, boSize)
+    boundary.endFill(0x0)
+    boundary.x = 10
+    boundary.y = 10
+
+    var ball = new PIXI.Graphics()
+    ball.beginFill(0x00ffffff, 0)
+    ball.lineStyle(2, 0, 1)
+    ball.drawCircle(0, 0, baSize, baSize)
+    ball.endFill(0x0)
+    ball.x = boSize/2
+    ball.y = boSize/2
+    app.stage.addChild(boundary, ball);
+
+
+    window.addEventListener('touchstart', function(e) {
+        let t = e.touches[0]
+        demo.add(t.clientX - demo.canvas.offsetLeft, t.clientY - demo.canvas.offsetTop, Math.random()*20 + 40)
+    })
+
+    // const loader = PIXI.Loader.shared;
+    // PIXI.Sprite.prototype.change = function(texture) {
+    //     this.texture = texture
+    // }
+    // PIXI.DisplayObject.prototype.turn = function(d) {
+    //     this.angle += d
+    // }
+    // PIXI.DisplayObject.prototype.move = function(x, y) {
+    //     this.x += x
+    //     this.y += y
+    // }
+    // PIXI.DisplayObject.prototype.moveTo = function(x, y) {
+    //     this.x = x
+    //     this.y = y
+    // }
+    // loader.add("sheet1", "KeyboardNinjaTA.json")
+    // .add("sheet2", "PreloaderTA.json")
+    // .load((loader, resources) => setup(resources));
+    
+    // function add(texture) {
+    //     let s = new PIXI.Sprite(texture);
+    //     app.stage.addChild(s);
+    //     s.interactive = true;
+    //     return s
+    // }
+
+    // var tex1, tex2
+
+    // function setup(resources) {
+    //     tex1 = resources.sheet1.textures
+    //     tex2 = resources.sheet2.textures
+    //     init()
+    //     app.ticker.add(delta => gameLoop());
+    // }
+
+        </script>
+    </body>
+</html>
