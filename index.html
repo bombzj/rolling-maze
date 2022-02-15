@@ -5,60 +5,73 @@
         <title>Hello World</title>
     </head>
     <script src="pixi.min.js"></script>
-    <script src="matter.min.js"></script>
-    <script src="maze.js"></script>
+    <script src="box2d_v2.2.1_min.js"></script>
+    <script src="maze.js?v=1"></script>
     <body>
-        <p id="ccc">aaa</p>
+        <p id="ccc" style="display:none">aaa</p>
         <button onclick="DeviceOrientationEvent.requestPermission()">ok</button>
         <script type="text/javascript">
            
             var beta = 0, gamma = 0
 
     //Create a Pixi Application
-    let app = new PIXI.Application({width: 1, height: 1});
+    let app = new PIXI.Application({width: 700, height: 700});
     //Add the canvas that Pixi automatically created for you to the HTML document
     document.body.appendChild(app.view);
 
     app.renderer.backgroundColor = 0xffffff;
+    var canvas = app.view
 
-    var demo = Example.wreckingBall()
-    demo.engine.gravity.y = 0
+    // var demo = Example.wreckingBall()
+    // demo.engine.gravity.y = 0
+    // demo.engine.gravity.x = -3
+    var updateGravity = null
     window.addEventListener('deviceorientation', function(e) {
-        if(e.beta != null) {
-            ccc.innerHTML = Math.round(Math.sin(e.beta / 180 * Math.PI)*100)/100
-        }
-        if(demo.engine) {
+        if(world) {
             if(e.beta != null) {
-                demo.engine.gravity.x = Math.sin(e.beta / 180 * Math.PI) * 5
+                let a = Math.sin(e.beta / 180 * Math.PI) * 20
+                let b = -Math.sin(e.gamma / 180 * Math.PI) * 20
+                let c = Math.sqrt(a*a + b*b) / 5
+                if(c > 1) {
+                    a /= c
+                    b /= c
+                }
+                updateGravity = new b2d.b2Vec2(a, b)
+                
+                ccc.innerHTML = Math.round(a*100)/100 + ' - ' + Math.round(b*100)/100
+                // demo.engine.gravity.x = a
+                // demo.engine.gravity.y = b
             }
-            if(e.gamma != null)
-                demo.engine.gravity.y = -Math.sin(e.gamma / 180 * Math.PI)   * 5
         }
     })
 
-    var boSize = 500, baSize = 20
-    var boundary = new PIXI.Graphics()
-    boundary.beginFill(0xffffff, 0)
-    boundary.lineStyle(3, 0x0, 1)
-    boundary.drawRect(0, 0, boSize, boSize)
-    boundary.endFill(0x0)
-    boundary.x = 10
-    boundary.y = 10
 
-    var ball = new PIXI.Graphics()
-    ball.beginFill(0x00ffffff, 0)
-    ball.lineStyle(2, 0, 1)
-    ball.drawCircle(0, 0, baSize, baSize)
-    ball.endFill(0x0)
-    ball.x = boSize/2
-    ball.y = boSize/2
-    app.stage.addChild(boundary, ball);
+    Box2D().then(function(Box2D) {
+        b2d = Box2D
+        initBox2d()
 
+        resetLevel()
 
-    window.addEventListener('touchstart', function(e) {
-        let t = e.touches[0]
-        demo.add(t.clientX - demo.canvas.offsetLeft, t.clientY - demo.canvas.offsetTop, Math.random()*20 + 40)
+        app.ticker.add(loop);
     })
+
+
+
+    function loop(dt) {
+        if(updateGravity) {
+            world.SetGravity(updateGravity)
+            // ballSprite.body.SetAwake(true)
+            updateGravity = null
+        }
+        updateWorld()
+    }
+
+    var ballSprite
+
+    // window.addEventListener('touchstart', function(e) {
+    //     let t = e.touches[0]
+    //     demo.add(t.clientX - demo.canvas.offsetLeft, t.clientY - demo.canvas.offsetTop, Math.random()*20 + 40)
+    // })
 
     // const loader = PIXI.Loader.shared;
     // PIXI.Sprite.prototype.change = function(texture) {
