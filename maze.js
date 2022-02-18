@@ -4,12 +4,13 @@ var myQueryCallback
 var mouseJointGroundBody
 
 function loadWorld() {
-
     if(world) {
         b2d.destroy(world)
         app.stage.removeChildren()
     }
 
+    level.row = level.wallV.length
+    level.column = level.wallH[0].length
     let gravity = new b2d.b2Vec2(0.0, 0.0)
     // debug
     // level.ball.x = level.debug.x
@@ -18,10 +19,10 @@ function loadWorld() {
 
     world = new b2d.b2World( gravity )
 
-    addWall(wallLeft + 4 * wallLength, wallTop, 8 * wallLength, wallWidth )
-    addWall(wallLeft + 4 * wallLength, wallTop + 8 * wallLength, 8 * wallLength, wallWidth)
-    addWall(wallLeft + 8 * wallLength, wallTop + 4 * wallLength, wallWidth, 8 * wallLength)
-    addWall(wallLeft, wallTop + 4 * wallLength, wallWidth, 8 * wallLength)
+    addWall(wallLeft + level.column * wallLength/2, wallTop, level.column * wallLength, wallWidth )
+    addWall(wallLeft + level.column * wallLength/2, wallTop + level.row * wallLength, level.column * wallLength, wallWidth)
+    addWall(wallLeft + level.column * wallLength, wallTop + level.row * wallLength/2, wallWidth, level.row * wallLength)
+    addWall(wallLeft, wallTop + level.row * wallLength/2, wallWidth, level.row * wallLength)
 
     for(let i = 0;i < level.wallH.length;i++) {
         let wall2 = level.wallH[i]
@@ -50,6 +51,8 @@ function loadWorld() {
     addBall(wallLeft + (level.ball.x+0.5) * wallLength, wallTop + (level.ball.y+0.5) * wallLength, 15)
 
     world.SetContactListener( listener )
+    mouseDown = null
+    mouseJoint = null
     mouseJointGroundBody = world.CreateBody( new b2d.b2BodyDef() )
 }
 
@@ -105,7 +108,7 @@ function nextLevel() {
     }
 }
 function resetLevel() {
-    curLevel = 0
+    curLevel = initLevel
     level = levels[curLevel]
     loadWorld()
 }
@@ -431,12 +434,53 @@ var levels = [
         ball: {x: 7, y: 7},
         exit: {x: 0, y: 0},
     }, 
+    {       // 8
+        wallH: [
+            [0,0,0,0,0,0,0,0,],
+            [0,0,0,0,0,1,1,0,],
+            [1,1,1,1,1,0,0,0,],
+            [0,0,0,0,0,0,0,0,],
+            [0,0,0,0,0,1,1,0,],
+            [0,0,0,0,0,1,0,0,],
+            [1,0,0,0,0,0,0,0,],
+        ],
+        wallV: [
+            [0,0,0,1,0,0,0,],
+            [0,0,0,1,0,0,0,],
+            [0,0,0,0,1,0,0,],
+            [0,0,0,0,1,0,0,],
+            [0,0,0,0,1,0,0,],
+            [0,1,0,0,1,0,0,],
+            [0,1,0,0,0,0,0,],
+            [0,1,0,0,1,0,0,],
+        ],
+        holes: [
+
+            [0,0],
+            [7,0],
+            [2,1],
+            [5,1],
+            [1,2],
+            [5,2],
+            [0,3],
+            [7,3],
+            [2,4],
+            [4,4],
+            [5,4],
+            [1,5],
+            [3,6],
+            [6,6],
+            [4,7],
+        ],
+        ball: {x: 0, y: 7},
+        exit: {x: 0, y: 2.4},
+    }, 
 
 ]
 
 var wallLength = 60, wallWidth = 3
-var wallLeft = 60, wallTop = 60
-
+var wallLeft = 10, wallTop = 10
+var initLevel = 0
 
 
 
@@ -453,9 +497,11 @@ function onMouseMove(pos) {
     }
 }
 function onMouseUp() {
-    mouseDown = false
-    world.DestroyJoint(mouseJoint)
-    mouseJoint = null
+    if ( mouseDown && mouseJoint != null ) {
+        mouseDown = false
+        world.DestroyJoint(mouseJoint)
+        mouseJoint = null
+    }
 }
 function startMouseJoint(pos) {
     if ( mouseJoint != null )
@@ -465,10 +511,11 @@ function startMouseJoint(pos) {
     var md = new b2d.b2MouseJointDef();
     md.set_bodyA(mouseJointGroundBody);
     md.set_bodyB(body);
-    md.set_target( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) );
+    md.set_target( body.GetPosition() );
     md.set_maxForce( 100 * body.GetMass() );
     md.set_collideConnected(true);
     
     mouseJoint = b2d.castObject( world.CreateJoint(md), b2d.b2MouseJoint );
+    mouseJoint.SetTarget( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) );
     body.SetAwake(true);
 }
