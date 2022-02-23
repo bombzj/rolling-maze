@@ -8,10 +8,25 @@
     </head>
     <script src="pixi.min.js"></script>
     <script src="box2d_v2.2.1_min.js"></script>
-    <script src="maze.js?v=4"></script>
+    <script src="maze.js?v=5"></script>
+    <style>
+        button, select, label, input{
+            font-size:20px;
+        }
+    </style>
     <body>
         <p id="ccc" style="display:none">aaa</p>
-        <button onclick="DeviceOrientationEvent.requestPermission()" style="float:right;font-size:20px;">ok</button>
+        <div style="float:right;">
+            <p>
+                <button onclick="DeviceOrientationEvent.requestPermission()">ok</button>
+            </p>
+            <p>
+                <select id="selectLevel" onchange="changeLevel(this.value)"></select>
+            </p>
+            <p>
+                <label><input type="checkbox" onclick="toggleEdit(this.checked)" value="1">Edit</label>
+            </p>
+        </div>
         <script type="text/javascript">
            
             var beta = 0, gamma = 0
@@ -68,7 +83,25 @@
         updateWorld()
     }
 
-    var ballSprite
+    for(let [index, level] of levels.entries()) {
+        selectLevel.options.add(new Option('Level ' + (index+1), index));
+    }
+
+    function changeLevel(index) {
+        curLevel = index
+        level = levels[curLevel]
+        loadWorld()
+    }
+
+    var editMode = false
+    function toggleEdit(r) {
+        if(r) {
+            ballSprite.visible = false
+        } else {
+            ballSprite.visible = true
+        }
+        editMode = r
+    }
 
     // window.addEventListener('touchstart', function(e) {
     //     let t = e.touches[0]

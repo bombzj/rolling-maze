@@ -90,6 +90,27 @@ function initBox2d() {
         onMouseUp(pos);
     }, false);
     
+    window.addEventListener('touchstart', function(e) {
+        if(editMode) {
+            let t = e.changedTouches[0]
+            let pos = {x: t.clientX - app.view.offsetLeft, y: t.clientY - app.view.offsetTop}
+            onMouseDown(pos);
+        }
+    }, false);
+    window.addEventListener('touchmove', function(e) {
+        if(editMode) {
+            let t = e.changedTouches[0]
+            let pos = {x: t.clientX - app.view.offsetLeft, y: t.clientY - app.view.offsetTop}
+            onMouseMove(pos);
+        }
+    }, false);
+    window.addEventListener('touchend', function(e) {
+        if(editMode) {
+            let t = e.changedTouches[0]
+            let pos = {x: t.clientX - app.view.offsetLeft, y: t.clientY - app.view.offsetTop}
+            onMouseUp(pos);
+        }
+    }, false);
     // window.addEventListener('mouseout', function(e) {
     //     onMouseOut(evt.data.global);
     // }, false);
@@ -158,6 +179,20 @@ function addWall(x, y, w, h) {
     app.stage.addChild(boundary)
 }
 
+
+function addLineWall(pos1, pos2) {
+    let x = pos1.x, y = pos1.y
+    let x2 = pos2.x, y2 = pos2.y
+    let dx = x2 - x, dy = y2 - y
+    let shape = new b2d.b2EdgeShape()
+    shape.Set(new b2d.b2Vec2(0, 0), new b2d.b2Vec2(dx/phyScale, dy/phyScale))
+    let bd = new b2d.b2BodyDef()
+    bd.set_position(new b2d.b2Vec2(x/phyScale, y/phyScale))
+    let body = world.CreateBody(bd)
+    let fx = body.CreateFixture(shape, 5.0)
+    fx.isExit = false
+}
+
 function addExit(x, y, w, h) {
     let shape = new b2d.b2PolygonShape()
     shape.SetAsBox(w/phyScale/2, h/phyScale/2)
@@ -189,7 +224,7 @@ function addHole(x, y, size) {
 }
 
 function updateWorld() {
-    if(!world.stop) {
+    if(!world.stop && !editMode) {
         world.Step(1/60, 3, 2)
         let pos = ballSprite.body.GetPosition()
         ballSprite.x = pos.get_x()*phyScale
@@ -475,7 +510,76 @@ var levels = [
         ball: {x: 0, y: 7},
         exit: {x: 0, y: 2.4},
     }, 
+    {       // 9
+        wallH: [
+            [0,0,0,0,1,1,1,0],
+            [0,0,0,0,0,1,0,0],
+            [0,0,1,0,0,0,0,1],
+            [0,0,1,1,0,0,1,0],
+            [0,0,0,0,0,1,0,1],
+            [0,1,1,0,0,0,0,0],
+            [1,0,1,0,1,0,0,0],
+        ],
+        wallV: [
+            [0,0,0,0,0,0,0],
+            [1,0,0,1,0,0,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,0,0,0],
+            [0,0,0,1,0,0,1],
+            [1,0,0,0,1,1,0],
+            [0,0,1,0,0,0,0],
+        ],
+        holes: [
+            [0,0],
+            [0,2],
+            [2,1],
+            [3,3],
+            [4,3],
+            [5,0],
+            [5,2],
+            [7,1],
+            [1,4],
+            [3,4],
+            [6,5],
+            [4,6],
+            [2,7],
+            [3,7],
+            [7,7],
+        ],
+        ball: {x: 0, y: 7},
+        exit: {x: 7.4, y: 5},
+    }, 
 
+    {       // 10
+        wallH: [
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+        ],
+        wallV: [
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+        ],
+        holes: [
+        ],
+        ball: {x: 0, y: 0},
+        exit: {x: 11.4, y: 9},
+    }, 
 ]
 
 var wallLength = 60, wallWidth = 3
@@ -487,20 +591,86 @@ var initLevel = 0
 
 var mouseDown = false
 var mouseJoint = null
-function onMouseDown(pos) {            
-    startMouseJoint(pos)
-    mouseDown = true
-}
-function onMouseMove(pos) {
-    if ( mouseDown && mouseJoint != null ) {
-        mouseJoint.SetTarget( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) );
+var lineSteps = []
+function onMouseDown(pos) {
+    if(pos.x < 0 || pos.y < 0
+        || pos.x > level.column * wallLength || pos.y > level.row * wallLength) {
+            return
+        }
+    if(editMode) {
+        // for(let [index,hole] of level.holes.entries()) {
+        //     let dx = hole[0] - pos.x / wallLength
+        //     let dy = hole[0] - pos.y / wallLength
+        //     let r = 0.5
+        //     if(dx*dx + dy*dy < r*r) {
+        //         holes.splice(index, 1)
+        //         break
+        //     }
+        // }
+        lineSteps.push(pos)
+    } else {
+        startMouseJoint(pos)
+        mouseDown = true
     }
 }
-function onMouseUp() {
+
+
+var lineSpirit
+
+function onMouseMove(pos) {
+    if(pos.x < 0 || pos.y < 0
+        || pos.x > level.column * wallLength || pos.y > level.row * wallLength) {
+            return
+        }
+    if ( mouseDown && mouseJoint != null ) {
+        mouseJoint.SetTarget( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) );
+    } else {
+        if(editMode && lineSteps.length > 0) {
+            let lastPos = lineSteps[lineSteps.length - 1]
+            let startPos = lineSteps[0]
+            let dx = pos.x - lastPos.x
+            let dy = pos.y - lastPos.y
+            let len = 10
+            if(dx*dx + dy*dy > len*len) {
+                lineSteps.push(pos)
+                if(!lineSpirit) {
+                    lineSpirit = new PIXI.Graphics()
+                    lineSpirit.lineStyle(2, 0x0)
+                    lineSpirit.moveTo(0, 0)
+                    lineSpirit.lineTo(dx, dy)
+                    lineSpirit.x = startPos.x
+                    lineSpirit.y = startPos.y
+                    app.stage.addChild(lineSpirit)
+                } else {
+                    lineSpirit.moveTo(lastPos.x - startPos.x, lastPos.y - startPos.y)
+                    lineSpirit.lineTo(pos.x - startPos.x, pos.y - startPos.y)
+                }
+                addLineWall(lineSteps[lineSteps.length - 2], lineSteps[lineSteps.length - 1])
+            }
+        }
+    }
+}
+function onMouseUp(pos) {
     if ( mouseDown && mouseJoint != null ) {
         mouseDown = false
         world.DestroyJoint(mouseJoint)
         mouseJoint = null
+    } else {
+        if(editMode) {
+            if(lineSteps.length > 0) {
+                let len = 20
+                if(lineSteps.length > 1) {  // wall
+                    lineSpirit = null
+                } else {    // hole
+                    let x = Math.round(pos.x / wallLength - 0.5)
+                    let y = Math.round(pos.y / wallLength - 0.5)
+                    addHole(wallLeft + (x+0.5) * wallLength, wallTop + (y+0.5) * wallLength, wallLength / 2.7)
+                    level.holes.push([x, y])
+                }
+            }
+            lineSteps = []
+
+        }
     }
 }
 function startMouseJoint(pos) {
