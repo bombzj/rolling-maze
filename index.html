@@ -15,7 +15,6 @@
         }
     </style>
     <body>
-        <p id="ccc" style="display:none">aaa</p>
         <div style="float:right;">
             <p>
                 <button onclick="DeviceOrientationEvent.requestPermission()">ok</button>
@@ -26,17 +25,20 @@
             <p>
                 <label><input type="checkbox" onclick="toggleEdit(this.checked)" value="1">Edit</label>
             </p>
+            <p>
+                <button onclick="clearEdit()">Clear</button>
+            </p>
         </div>
         <script type="text/javascript">
            
             var beta = 0, gamma = 0
 
     //Create a Pixi Application
-    let app = new PIXI.Application({width: 800, height: 700});
+    let app = new PIXI.Application({width: 800, height: 700, antialias: true})
     //Add the canvas that Pixi automatically created for you to the HTML document
-    document.body.appendChild(app.view);
+    document.body.appendChild(app.view)
 
-    app.renderer.backgroundColor = 0xffffff;
+    app.renderer.backgroundColor = 0xffffff
     var canvas = app.view
 
     // var demo = Example.wreckingBall()
@@ -46,16 +48,21 @@
     window.addEventListener('deviceorientation', function(e) {
         if(world) {
             if(e.beta != null) {
-                let a = Math.sin(e.beta / 180 * Math.PI) * 20
-                let b = -Math.sin(e.gamma / 180 * Math.PI) * 20
-                let c = Math.sqrt(a*a + b*b) / 5
+                let a = Math.sin(e.gamma / 180 * Math.PI) * Math.cos(e.beta / 180 * Math.PI) * 100
+                let b = Math.sin(e.beta / 180 * Math.PI) * 100
+                if(window.orientation) {
+                    let res = turn(a, b, window.orientation / 180 * Math.PI)
+                    a = res[0]
+                    b = res[1]
+                }
+                // let [a, b] = 
+                let c = Math.sqrt(a*a + b*b) / 50
                 if(c > 1) {
                     a /= c
                     b /= c
                 }
                 updateGravity = new b2d.b2Vec2(a, b)
                 
-                ccc.innerHTML = Math.round(a*100)/100 + ' - ' + Math.round(b*100)/100
                 // demo.engine.gravity.x = a
                 // demo.engine.gravity.y = b
             }
@@ -90,6 +97,13 @@
     function changeLevel(index) {
         curLevel = index
         level = levels[curLevel]
+        loadWorld()
+    }
+
+    function clearEdit() {
+        level.lines = null
+        level.holes2 = null
+        localStorage.removeItem("rmaze"+curLevel);
         loadWorld()
     }
 
@@ -142,6 +156,15 @@
     //     init()
     //     app.ticker.add(delta => gameLoop());
     // }
+
+        function turn(x, y, a) {
+            let sin = Math.sin(a)
+            let cos = Math.cos(a)
+            return [
+                -x * cos + y * sin,
+                -x * sin - y * cos,
+            ]
+        }
 
         </script>
     </body>
