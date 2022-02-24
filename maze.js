@@ -8,6 +8,17 @@ function loadWorld() {
         b2d.destroy(world)
         app.stage.removeChildren()
     }
+    if(!level.lines) level.lines = []
+    if(!level.holes2) level.holes2 = []
+
+    let jsonString = localStorage.getItem("rmaze"+curLevel)
+    if(jsonString) {
+        let tmp = JSON.parse(jsonString)
+        if(tmp) {
+            level.lines = tmp.lines
+            level.holes2 = tmp.holes2
+        }
+    }
 
     level.row = level.wallV.length
     level.column = level.wallH[0].length
@@ -41,14 +52,33 @@ function loadWorld() {
         }
     }
 
-    for(let i = 0;i < level.holes.length;i++) {
-        let x = level.holes[i][0]
-        let y = level.holes[i][1]
+    let holes = level.holes.concat(level.holes2)
+    for(let hole of holes) {
+        let x = hole[0]
+        let y = hole[1]
         addHole(wallLeft + (x+0.5) * wallLength, wallTop + (y+0.5) * wallLength, wallLength / 2.7)
     }
 
     addExit(wallLeft + (level.exit.x+0.5) * wallLength, wallTop + (level.exit.y+0.5) * wallLength, 10, 10)
     addBall(wallLeft + (level.ball.x+0.5) * wallLength, wallTop + (level.ball.y+0.5) * wallLength, 15)
+
+    for(let line of level.lines) {
+        let startPos = line[0]
+        let lineSpirit = new PIXI.Graphics()
+        lineSpirit.lineStyle(2, 0x0)
+        lineSpirit.moveTo(0, 0)
+        let lastPos = startPos
+        for(let pos of line.slice(1)) {
+            let dx = pos.x - startPos.x
+            let dy = pos.y - startPos.y
+            lineSpirit.lineTo(dx, dy)
+            addLineWall(lastPos, pos)
+            lastPos = pos
+        }
+        lineSpirit.x = startPos.x
+        lineSpirit.y = startPos.y
+        app.stage.addChild(lineSpirit)
+    }
 
     world.SetContactListener( listener )
     mouseDown = null
@@ -230,7 +260,7 @@ function updateWorld() {
         ballSprite.x = pos.get_x()*phyScale
         ballSprite.y = pos.get_y()*phyScale
 
-        for(let hole of level.holes) {
+        for(let hole of level.holes.concat(level.holes2)) {
             let dx = wallLeft + (hole[0]+0.5) * wallLength - ballSprite.x
             let dy = wallTop + (hole[1]+0.5) * wallLength - ballSprite.y
             let r = wallLength / 2.7
@@ -661,11 +691,14 @@ function onMouseUp(pos) {
                 let len = 20
                 if(lineSteps.length > 1) {  // wall
                     lineSpirit = null
+                    level.lines.push(lineSteps)
+                    localStorage.setItem("rmaze"+curLevel, JSON.stringify(level))
                 } else {    // hole
                     let x = Math.round(pos.x / wallLength - 0.5)
                     let y = Math.round(pos.y / wallLength - 0.5)
                     addHole(wallLeft + (x+0.5) * wallLength, wallTop + (y+0.5) * wallLength, wallLength / 2.7)
-                    level.holes.push([x, y])
+                    level.holes2.push([x, y])
+                    localStorage.setItem("rmaze"+curLevel, JSON.stringify(level))
                 }
             }
             lineSteps = []
