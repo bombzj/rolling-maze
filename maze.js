@@ -28,6 +28,8 @@ function loadWorld() {
     // level.ball.y = level.debug.y
     // gravity = new b2d.b2Vec2(level.debug.dx, level.debug.dy)
 
+    drawRect(wallLeft, wallTop, level.column * wallLength, level.row * wallLength, 0x2EF2AA)
+
     world = new b2d.b2World( gravity )
 
     addWall(wallLeft + level.column * wallLength/2, wallTop, level.column * wallLength, wallWidth )
@@ -60,7 +62,10 @@ function loadWorld() {
     }
 
     addExit(wallLeft + (level.exit.x+0.5) * wallLength, wallTop + (level.exit.y+0.5) * wallLength, 10, 10)
-    addBall(wallLeft + (level.ball.x+0.5) * wallLength, wallTop + (level.ball.y+0.5) * wallLength, 15)
+    ballSprite = []
+    for(let ball of level.ball) {
+        ballSprite.push(addBall(wallLeft + (ball.x+0.5) * wallLength, wallTop + (ball.y+0.5) * wallLength, 18))
+    }
 
     for(let line of level.lines) {
         let startPos = line[0]
@@ -86,6 +91,14 @@ function loadWorld() {
     mouseJointGroundBody = world.CreateBody( new b2d.b2BodyDef() )
 }
 
+function drawRect(x, y, w, h, color) {
+    var boundary = new PIXI.Graphics()
+    boundary.beginFill(color)
+    boundary.drawRect(x, y, w, h)
+    boundary.endFill()
+    app.stage.addChild(boundary)
+}
+
 var listener
 function initBox2d() {
     listener = new b2d.JSContactListener();
@@ -95,7 +108,9 @@ function initBox2d() {
         var fixtureB = contact.GetFixtureB()
         if(fixtureA.isExit) {
             if(fixtureB.isBall) {
-                ballSprite.alpha = 0
+                for(let ball of ballSprite) {
+                    ball.visible = false
+                }
                 stopWorld()
                 setTimeout(nextLevel, 200)
             }
@@ -147,23 +162,6 @@ function initBox2d() {
 }
 
 
-var curLevel
-var level
-function nextLevel() {
-    curLevel++
-    if(curLevel >= levels.length) {
-        resetLevel()
-    } else {
-        level = levels[curLevel]
-        loadWorld()
-    }
-}
-function resetLevel() {
-    curLevel = initLevel
-    level = levels[curLevel]
-    loadWorld()
-}
-
 
 function addBall(x, y, r) {
     let shape = new b2d.b2CircleShape();
@@ -180,15 +178,20 @@ function addBall(x, y, r) {
     fx.SetRestitution(0.25)
     // body.SetAwake(true)
 
-    var ball = new PIXI.Graphics()
-    ball.beginFill(0x0)
-    ball.drawCircle(0, 0, r, r)
-    ball.endFill()
+    // var ball = new PIXI.Graphics()
+    // ball.beginFill(0x0)
+    // ball.drawCircle(0, 0, r, r)
+    // ball.endFill()
+    // ball.x = x
+    // ball.y = y
+    var ball = new PIXI.Sprite(ballTexture)
+    ball.anchor.set(0.5)
     ball.x = x
     ball.y = y
+    ball.width = ball.height = r * 2
     app.stage.addChild(ball)
-    ballSprite = ball
-    ballSprite.body = body
+    ball.body = body
+    return ball
 }
 
 function addWall(x, y, w, h) {
@@ -244,10 +247,10 @@ function addExit(x, y, w, h) {
 function addHole(x, y, size) {
 
     var ball = new PIXI.Graphics()
-    ball.beginFill(0x00ffffff, 0)
-    ball.lineStyle(2, 0, 1)
+    ball.beginFill(0x0F4F36)
+    ball.lineStyle(2, 0x0F4F36)
     ball.drawCircle(0, 0, size, size)
-    ball.endFill(0x0)
+    ball.endFill()
     ball.x = x
     ball.y = y
     app.stage.addChild(ball)
@@ -256,21 +259,25 @@ function addHole(x, y, size) {
 function updateWorld() {
     if(!world.stop && !editMode) {
         world.Step(1/60, 3, 2)
-        let pos = ballSprite.body.GetPosition()
-        ballSprite.x = pos.get_x()*phyScale
-        ballSprite.y = pos.get_y()*phyScale
-
-        for(let hole of level.holes.concat(level.holes2)) {
-            let dx = wallLeft + (hole[0]+0.5) * wallLength - ballSprite.x
-            let dy = wallTop + (hole[1]+0.5) * wallLength - ballSprite.y
-            let r = wallLength / 2.7
-            if(dx*dx + dy*dy < r*r) {
-                ballSprite.alpha = 0
-                stopWorld()
-                setTimeout(function() {
-                    resetLevel()
-                }, 2000)
-                break
+        for(let ball of ballSprite) {
+            let pos = ball.body.GetPosition()
+            ball.x = pos.get_x()*phyScale
+            ball.y = pos.get_y()*phyScale
+    
+            for(let hole of level.holes.concat(level.holes2)) {
+                let dx = wallLeft + (hole[0]+0.5) * wallLength - ball.x
+                let dy = wallTop + (hole[1]+0.5) * wallLength - ball.y
+                let r = wallLength / 2.7
+                if(dx*dx + dy*dy < r*r) {
+                    for(let ball of ballSprite) {
+                        ball.visible = false
+                    }
+                    stopWorld()
+                    setTimeout(function() {
+                        resetLevel()
+                    }, 2000)
+                    return
+                }
             }
         }
     }
@@ -307,7 +314,7 @@ var levels = [
             [6, 6],
             [2, 2.5],
         ],
-        ball: {x: 7, y: 7},
+        ball: [{x: 7, y: 7}],
         exit: {x: -0.4, y: 3},
         debug: {x: 1, y: 3, dx: -5, dy: 0}
     }, 
@@ -336,7 +343,7 @@ var levels = [
             [4.5, 4],
             [3.5, 5],
         ],
-        ball: {x: 7, y: 3},
+        ball: [{x: 7, y: 3}],
         exit: {x: 1, y: 7.4},
         debug: {x: 1, y: 6, dx: 0, dy: 5}
     }, 
@@ -366,7 +373,7 @@ var levels = [
             [4, 4],
             [2, 5],
         ],
-        ball: {x: 6, y: 7},
+        ball: [{x: 6, y: 7}],
         exit: {x: 1, y: -0.4},
         debug: {x: 1, y: 1, dx: 0, dy: -5}
     }, 
@@ -397,7 +404,7 @@ var levels = [
             [4,5],
             [6,4],
         ],
-        ball: {x: 6, y: 0},
+        ball: [{x: 6, y: 0}],
         exit: {x: 6, y: 7.4},
     }, 
     {       // 5
@@ -427,7 +434,7 @@ var levels = [
             [4,4],
             [4,6],
         ],
-        ball: {x: 1, y: 7},
+        ball: [{x: 1, y: 7}],
         exit: {x: 7.5, y: 2},
     }, 
     {       // 6
@@ -456,7 +463,7 @@ var levels = [
             [1,3],
             [3,5],
         ],
-        ball: {x: 7, y: 5},
+        ball: [{x: 7, y: 5}],
         exit: {x: 1.5, y: 1.5},
     }, 
     {       // 7
@@ -496,7 +503,7 @@ var levels = [
             [6,6],
             [0,7],
         ],
-        ball: {x: 7, y: 7},
+        ball: [{x: 7, y: 7}],
         exit: {x: 0, y: 0},
     }, 
     {       // 8
@@ -537,7 +544,7 @@ var levels = [
             [6,6],
             [4,7],
         ],
-        ball: {x: 0, y: 7},
+        ball: [{x: 0, y: 7}],
         exit: {x: 0, y: 2.4},
     }, 
     {       // 9
@@ -577,7 +584,7 @@ var levels = [
             [3,7],
             [7,7],
         ],
-        ball: {x: 0, y: 7},
+        ball: [{x: 0, y: 7}],
         exit: {x: 7.4, y: 5},
     }, 
 
@@ -607,12 +614,104 @@ var levels = [
         ],
         holes: [
         ],
-        ball: {x: 0, y: 0},
+        ball: [
+            {x: 0, y: 0},
+            {x: 0, y: 1},
+        ],
         exit: {x: 11.4, y: 9},
+    }, 
+    {       // 11
+        wallH: [
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0,0],
+        ],
+        wallV: [
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0,0,0,0],
+        ],
+        holes: [
+        ],
+        ball: [
+            {x: 0, y: 0},
+            {x: 0, y: 1},
+        ],
+        exit: {x: 11.4, y: 9},
+    },  
+    {       // 12
+        wallH: [
+            [0,1,1,1,0,0,0,0,0,0,],
+            [0,0,0,0,0,0,0,0,1,0,],
+            [0,0,0,0,0,0,0,0,0,0,],
+            [0,0,0,1,0,0,0,1,0,0,],
+            [0,1,0,1,1,0,0,0,0,0,],
+            [0,0,0,0,0,0,0,0,0,0,],
+            [0,0,0,0,0,0,1,0,0,0,],
+            [0,0,0,1,1,1,0,1,0,0,],
+            [1,0,0,0,0,0,1,1,0,0,],
+        ],
+        wallV: [
+            [0,0,0,1,0,0,0,1,1,],
+            [1,0,0,1,0,0,0,1,0,],
+            [1,0,0,1,0,0,0,0,0,],
+            [1,0,0,0,1,0,0,0,0,],
+            [1,0,1,0,0,1,0,0,0,],
+            [0,0,0,0,0,0,1,0,0,],
+            [0,0,0,0,0,0,1,0,0,],
+            [0,0,0,0,0,1,0,0,0,],
+            [0,0,0,0,0,1,0,1,0,],
+            [0,0,0,0,0,0,0,0,0,],
+        ],
+        holes: [
+            [5,0],    
+            [6,0],
+            [7,0],
+            [4,1],
+            [2,2],
+            [4,2],
+            [6,2],
+            [2,3],
+            [6,3],
+            [8,3],
+            [3,4],
+            [9,4],
+            [1,5],
+            [5,5],
+            [8,5],
+            [2,6],
+            [4,6],
+            [0,7],
+            [2,7],
+            [7,7],
+            [9,7],
+            [2,8],
+            [0,9],
+            [4,9],
+            [9,9],
+
+        ],
+        ball: [
+            {x: 8,y: 0},
+        ],
+        exit: {x: 3.4, y: 0},
     }, 
 ]
 
-var wallLength = 60, wallWidth = 3
+var wallLength = 60, wallWidth = 2
 var wallLeft = 10, wallTop = 10
 var initLevel = 0
 
@@ -623,8 +722,8 @@ var mouseDown = false
 var mouseJoint = null
 var lineSteps = []
 function onMouseDown(pos) {
-    if(pos.x < 0 || pos.y < 0
-        || pos.x > level.column * wallLength || pos.y > level.row * wallLength) {
+    if(pos.x < wallLeft || pos.y < wallTop
+        || pos.x > wallLeft + level.column * wallLength || pos.y > wallTop + level.row * wallLength) {
             return
         }
     if(editMode) {
@@ -648,8 +747,8 @@ function onMouseDown(pos) {
 var lineSpirit
 
 function onMouseMove(pos) {
-    if(pos.x < 0 || pos.y < 0
-        || pos.x > level.column * wallLength || pos.y > level.row * wallLength) {
+    if(pos.x < wallLeft || pos.y < wallTop
+        || pos.x > wallLeft + level.column * wallLength || pos.y > wallTop + level.row * wallLength) {
             return
         }
     if ( mouseDown && mouseJoint != null ) {
@@ -709,16 +808,15 @@ function onMouseUp(pos) {
 function startMouseJoint(pos) {
     if ( mouseJoint != null )
         return
+    let ball = ballSprite[0]
+    let body = ball.body
+    var md = new b2d.b2MouseJointDef()
+    md.set_bodyA(mouseJointGroundBody)
+    md.set_bodyB(body)
+    md.set_target( body.GetPosition() )
+    md.set_maxForce( 100 * body.GetMass() )
+    md.set_collideConnected(true)
     
-    let body = ballSprite.body
-    var md = new b2d.b2MouseJointDef();
-    md.set_bodyA(mouseJointGroundBody);
-    md.set_bodyB(body);
-    md.set_target( body.GetPosition() );
-    md.set_maxForce( 100 * body.GetMass() );
-    md.set_collideConnected(true);
-    
-    mouseJoint = b2d.castObject( world.CreateJoint(md), b2d.b2MouseJoint );
-    mouseJoint.SetTarget( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) );
-    body.SetAwake(true);
+    mouseJoint = b2d.castObject( world.CreateJoint(md), b2d.b2MouseJoint )
+    mouseJoint.SetTarget( new b2d.b2Vec2(pos.x/phyScale, pos.y/phyScale) )
 }

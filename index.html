@@ -34,7 +34,7 @@
             var beta = 0, gamma = 0
 
     //Create a Pixi Application
-    let app = new PIXI.Application({width: 800, height: 700, antialias: true})
+    let app = new PIXI.Application({width: 800, height: 700})
     //Add the canvas that Pixi automatically created for you to the HTML document
     document.body.appendChild(app.view)
 
@@ -69,11 +69,12 @@
         }
     })
 
+    var ballTexture
 
     Box2D().then(function(Box2D) {
         b2d = Box2D
         initBox2d()
-
+        ballTexture = PIXI.Texture.from('ball.png');
         resetLevel()
 
         app.ticker.add(loop);
@@ -100,6 +101,28 @@
         loadWorld()
     }
 
+
+
+    var curLevel = 0
+    var level
+    function nextLevel() {
+        curLevel++
+        if(curLevel >= levels.length) {
+            resetLevel()
+        } else {
+            level = levels[curLevel]
+            loadWorld()
+            selectLevel.options[curLevel].selected = true
+        }
+    }
+    function resetLevel() {
+        selectLevel.options[curLevel].selected = false
+        selectLevel.options[initLevel].selected = true
+        curLevel = initLevel
+        level = levels[curLevel]
+        loadWorld()
+    }
+
     function clearEdit() {
         level.lines = null
         level.holes2 = null
@@ -107,55 +130,20 @@
         loadWorld()
     }
 
+    var ballSprite
     var editMode = false
     function toggleEdit(r) {
         if(r) {
-            ballSprite.visible = false
+            for(let ball of ballSprite) {
+                ball.visible = false
+            }
         } else {
-            ballSprite.visible = true
+            for(let ball of ballSprite) {
+                ball.visible = true
+            }
         }
         editMode = r
     }
-
-    // window.addEventListener('touchstart', function(e) {
-    //     let t = e.touches[0]
-    //     demo.add(t.clientX - demo.canvas.offsetLeft, t.clientY - demo.canvas.offsetTop, Math.random()*20 + 40)
-    // })
-
-    // const loader = PIXI.Loader.shared;
-    // PIXI.Sprite.prototype.change = function(texture) {
-    //     this.texture = texture
-    // }
-    // PIXI.DisplayObject.prototype.turn = function(d) {
-    //     this.angle += d
-    // }
-    // PIXI.DisplayObject.prototype.move = function(x, y) {
-    //     this.x += x
-    //     this.y += y
-    // }
-    // PIXI.DisplayObject.prototype.moveTo = function(x, y) {
-    //     this.x = x
-    //     this.y = y
-    // }
-    // loader.add("sheet1", "KeyboardNinjaTA.json")
-    // .add("sheet2", "PreloaderTA.json")
-    // .load((loader, resources) => setup(resources));
-    
-    // function add(texture) {
-    //     let s = new PIXI.Sprite(texture);
-    //     app.stage.addChild(s);
-    //     s.interactive = true;
-    //     return s
-    // }
-
-    // var tex1, tex2
-
-    // function setup(resources) {
-    //     tex1 = resources.sheet1.textures
-    //     tex2 = resources.sheet2.textures
-    //     init()
-    //     app.ticker.add(delta => gameLoop());
-    // }
 
         function turn(x, y, a) {
             let sin = Math.sin(a)
